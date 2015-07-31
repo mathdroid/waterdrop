@@ -205,6 +205,9 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
             # print("sigmaf:",sigmaf)
             for q in range(0,CBS): #loop buat ngitung pxy
                 y= BS[q]
+
+                straightIndex = allsoil.index((x,y))
+                revIndex = allsoil.index((y,x))
                 pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
                 pxy[revIndex]= pxy[straightIndex]
             # print("pxy:",pxy)
@@ -213,6 +216,8 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
             q= 0
             while u > p: #loop buat milih y
                 y= BS[q]
+
+                straightIndex = allsoil.index((x,y))
                 p= p + pxy[straightIndex]
                 q= q + 1
                 # print("y:",y)
@@ -224,6 +229,9 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
                 CBS= len(BS)
             # print("tji: ",T[y])
             #Rumus-rumus buat update
+
+            straightIndex = allsoil.index((x,y))
+            revIndex = allsoil.index((y,x))
             Vn= Vn + av/ (bv+ cv* soil[straightIndex]* soil[straightIndex])
             # print("Vn: ",Vn)
             HUD= 1/ (epsilon+ T[y])
@@ -506,9 +514,9 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
     for q in range(CVC-1): #update soil
         x= IB[q]
         y= IB[q+1]
-        
-        straightIndex = allsoil.index((x,y))
-        revIndex = allsoil.index((y,x))
+
+        straightxIndex = allsoil.index((x,y))
+        revxIndex = allsoil.index((y,x))
         soil[straightxIndex]= (1+ rhoiwd)* soil[straightxIndex]-rhoiwd*(1/(J*I-1))*SIB
         soil[revxIndex]= soil[straightxIndex]
     if MSIB< MSTB: #update MSTB
