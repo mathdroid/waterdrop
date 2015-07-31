@@ -189,6 +189,8 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
             # print("minsoil:",minsoil)
             for q in range(0,CBS): #loop buat fsoil
                 y= BS[q]
+                straightIndex = allsoil.index((x,y))
+                revIndex = allsoil.index((y,x))
                 if minsoil>= 0:
                     gsoil[allsoil.index((x,y))] = soil[allsoil.index((x,y))]
                     gsoil[allsoil.index((y,x))] = gsoil[allsoil.index((x,y))]
@@ -242,6 +244,10 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
             # print("BS akhir:",BS)
             # print("CVC akhir:",CVC)
             # print("CBS akhir:",CBS)
+
+        #END OF IWD
+
+
         #START ALGORITMA PENJADWALAN DAN MAKESPAN
         ST= dict(STA)
         FT= dict(FTA)
@@ -508,8 +514,8 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
         STT= STB
         FTT= FTB
         best= iterasi
-    print "iteration number {} done.".format(iterasi)
-print("MSTB: ",MSTB)
+    print "iteration number {} done. MSIB: {}".format(iterasi, MSIB)
+print("MSTB: {}").format(MSTB)
 print("TB: ",TB)
 print("Start time best: ",STT)
 print("Finish time best: ",FTT)
