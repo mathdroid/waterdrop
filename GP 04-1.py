@@ -9,6 +9,10 @@ for a in range(1,J+1):
         mesin.append(b)
 T = {(1, 2): 7, (3, 2): 69, (1, 3): 4, (3, 3): 605, (4, 1): 317, (3, 1): 42, (4, 4): 7, (1, 4): 351, (2, 4): 358, (2, 3): 1, (2, 1): 3, (4, 3): 390, (2, 2): 638, (4, 2): 286, (3, 4): 284, (1, 1): 638}
 
+print(job)
+print(mesin)
+print(T)
+
 #INISIALISASI PARAMETER ALGORITMA
 av,bv,cv = 1, 0.01, 1
 aso,bso,cso = 1, 0.01, 1
@@ -23,6 +27,7 @@ epsilon= 0.000001
 
 #ALGO BUAT BSA
 BSA= list(zip(job, mesin))
+print(BSA)
 
 #ALGO SET SOIL X,Y = INITSOIL DAN SOIL2 LAINNYA
 allsoil= [ ]
@@ -44,7 +49,7 @@ soil= soil + soil
 gsoil= gsoil + gsoil
 fsoil= fsoil + fsoil
 pxy= pxy + pxy
-    
+
 
 #ALGORITMA BESAR
 MSTB= 999999
@@ -302,7 +307,7 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
                                 OJ[j]= OJ[j]+ 1
                                 updategapi(j,i,u)
                                 updategapj(j,i,w)
-                                break   
+                                break
                         else:
                             jadwalujung(j,i)
                             updategapujung(j,i)
@@ -372,11 +377,10 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
         STT= STB
         FTT= FTB
         best= iterasi
+
 print("MSTB: ",MSTB)
 print("TB: ",TB)
 print("Start time best: ",STT)
 print("Finish time best: ",FTT)
 print("best iteration: ",best)
 input("Press!")
-        
-                                                         
