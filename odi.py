@@ -192,28 +192,28 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
                 straightIndex = allsoil.index((x,y))
                 revIndex = allsoil.index((y,x))
                 if minsoil>= 0:
-                    gsoil[allsoil.index((x,y))] = soil[allsoil.index((x,y))]
-                    gsoil[allsoil.index((y,x))] = gsoil[allsoil.index((x,y))]
+                    gsoil[straightIndex] = soil[straightIndex]
+                    gsoil[revIndex] = gsoil[straightIndex]
                 else:
-                    gsoil[allsoil.index((x,y))] = soil[allsoil.index((x,y))] - minsoil
-                    gsoil[allsoil.index((y,x))] = gsoil[allsoil.index((x,y))]
-                fsoil[allsoil.index((x,y))]= 1/ (epsilon + gsoil[allsoil.index((x,y))])
-                fsoil[allsoil.index((y,x))]=  fsoil[allsoil.index((x,y))]
-                # print("gsoil x y: ",gsoil[allsoil.index((x,y))])
-                # print("fsoil x y", fsoil[allsoil.index((x,y))])
-                sigmaf= sigmaf + fsoil[allsoil.index((x,y))]
+                    gsoil[straightIndex] = soil[straightIndex] - minsoil
+                    gsoil[revIndex] = gsoil[straightIndex]
+                fsoil[straightIndex]= 1/ (epsilon + gsoil[straightIndex])
+                fsoil[revIndex]=  fsoil[straightIndex]
+                # print("gsoil x y: ",gsoil[straightIndex])
+                # print("fsoil x y", fsoil[straightIndex])
+                sigmaf= sigmaf + fsoil[straightIndex]
             # print("sigmaf:",sigmaf)
             for q in range(0,CBS): #loop buat ngitung pxy
                 y= BS[q]
-                pxy[allsoil.index((x,y))]= (fsoil[allsoil.index((x,y))]/ sigmaf)
-                pxy[allsoil.index((y,x))]= pxy[allsoil.index((x,y))]
+                pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
+                pxy[revIndex]= pxy[straightIndex]
             # print("pxy:",pxy)
             u= random.uniform(0,1)
             # print("u:",u)
             q= 0
             while u > p: #loop buat milih y
                 y= BS[q]
-                p= p + pxy[allsoil.index((x,y))]
+                p= p + pxy[straightIndex]
                 q= q + 1
                 # print("y:",y)
                 # print("p:",p)
@@ -224,7 +224,7 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
                 CBS= len(BS)
             # print("tji: ",T[y])
             #Rumus-rumus buat update
-            Vn= Vn + av/ (bv+ cv* soil[allsoil.index((x,y))]* soil[allsoil.index((x,y))])
+            Vn= Vn + av/ (bv+ cv* soil[straightIndex]* soil[straightIndex])
             # print("Vn: ",Vn)
             HUD= 1/ (epsilon+ T[y])
             # print("HUD: ",HUD)
@@ -232,9 +232,9 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
             # print("time: ",time)
             dsoil= aso/ (bso+ cso* time* time)
             # print("delta soil:",dsoil)
-            soil[allsoil.index((x,y))]= (1- rhon)*soil[allsoil.index((x,y))]- rhon* dsoil
-            soil[allsoil.index((y,x))]= soil[allsoil.index((x,y))]
-            # print("soil x,y updated: ",soil[allsoil.index((x,y))])
+            soil[straightIndex]= (1- rhon)*soil[straightIndex]- rhon* dsoil
+            soil[revIndex]= soil[straightIndex]
+            # print("soil x,y updated: ",soil[straightIndex])
             # print("soil baru: ", soil)
             Sn = Sn+ dsoil
             # print("Sn updated: ",Sn)
@@ -506,8 +506,11 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
     for q in range(CVC-1): #update soil
         x= IB[q]
         y= IB[q+1]
-        soil[allsoil.index((x,y))]= (1+ rhoiwd)* soil[allsoil.index((x,y))]-rhoiwd*(1/(J*I-1))*SIB
-        soil[allsoil.index((y,x))]= soil[allsoil.index((x,y))]
+        
+        straightIndex = allsoil.index((x,y))
+        revIndex = allsoil.index((y,x))
+        soil[straightxIndex]= (1+ rhoiwd)* soil[straightxIndex]-rhoiwd*(1/(J*I-1))*SIB
+        soil[revxIndex]= soil[straightxIndex]
     if MSIB< MSTB: #update MSTB
         MSTB= MSIB
         TB= IB
