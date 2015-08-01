@@ -47,13 +47,17 @@ OJA= [ ]
 MSTB= 999999
 TB= [ ]
 
+soils = {}
+
+dicetime = []
 #classes
 class Soil:
-    def __init__(self, defsoil, defchance):
+    def __init__(self, node1, node2, defsoil, defchance):
         self.soil = defsoil
         self.fsoil = defsoil
         self.gsoil = defsoil
         self.pxy = defchance
+        self.nodes = [node1, node2]
 
 class Node:
     def __init__(self, job, machine, duration):
@@ -229,8 +233,12 @@ for a in range(len(BSA)-1):
         allsoil.append((x,y))
         allsoil.append((y,x))
 
+# for key in nodes.keys():
+
 # print("allsoil: {}").format(allsoil)
 allsoilLength = len(allsoil)
+
+
 
 # def nol(x):
 #     return 0
@@ -305,19 +313,33 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         BS.remove((j,i))
         CVC= len(VC)
         CBS= len(BS)
+
         # print("CVC,CBS:",CVC,CBS)
         # print("allsoil:",allsoil)
         # print("soil:",soil)
 
         #START ALGORITMA IWD
         # print("BS:",BS)
-        iwdStart = Time.time()
-        for a in range(0,CBS): #Mulai loop buat ngisi VC
+        # iwdStart = Time.time()
+        while CBS>0: #Mulai loop buat ngisi VC
             sigmaf = 0
             p = 0
-            minsoil = min(soil)
+            minsoil = 10001
+            # for city in BS:
+
+            for y in BS:
+            # for q in range(0,CBS):
+            #     y = BS[q]
+                if soil[allsoil.index((x,y))] < minsoil:
+                    minsoil= soil[allsoil.index((x,y))]
+            # minsoil = min(soil)
+
             # minsoil = reduce(lambda x,y: x if x<y else y, soil)
             # print("minsoil:",minsoil)
+
+
+            #offsetting all soils with the minsoil, if minsoil if negative.
+            #
             for q in range(0,CBS): #loop buat fsoil
                 y= BS[q]
                 straightIndex = allsoil.index((x,y))
@@ -328,12 +350,13 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 else:
                     gsoil[straightIndex] = soil[straightIndex] - minsoil
                     gsoil[revIndex] = gsoil[straightIndex]
-                fsoil[straightIndex]= 1/ (epsilon + gsoil[straightIndex])
-                fsoil[revIndex]=  fsoil[straightIndex]
+                fsoil[straightIndex] = 1/ (epsilon + gsoil[straightIndex])
+                fsoil[revIndex] =  fsoil[straightIndex]
                 # print("gsoil x y: ",gsoil[straightIndex])
                 # print("fsoil x y", fsoil[straightIndex])
-                sigmaf= sigmaf + fsoil[straightIndex]
+                sigmaf += fsoil[straightIndex]
             # print("sigmaf:",sigmaf)
+
             for q in range(0,CBS): #loop buat ngitung pxy
                 y= BS[q]
 
@@ -341,10 +364,12 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 revIndex = allsoil.index((y,x))
                 pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
                 pxy[revIndex]= pxy[straightIndex]
+
             # print("pxy:",pxy)
             u= random.uniform(0,1)
             # print("u:",u)
             q= 0
+            chancetime = Time.time()
             while u > p: #loop buat milih y
                 y= BS[q]
 
@@ -353,17 +378,18 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 q= q + 1
                 # print("y:",y)
                 # print("p:",p)
-            else:
-                VC.append(y)
-                BS.remove(y)
-                CVC= CVC+1
-                CBS= CBS-1
+            dicetime.append(Time.time()-chancetime)
+            # else:
+            VC.append(y)
+            BS.remove(y)
+            CVC += 1
+            CBS -= 1
             # print("tji: ",T[y])
             #Rumus-rumus buat update
 
             straightIndex = allsoil.index((x,y))
             revIndex = allsoil.index((y,x))
-            Vn= Vn + av/ (bv+ cv* soil[straightIndex]* soil[straightIndex])
+            Vn= Vn + av/ (bv+ cv* soil[straightIndex]**2)
             # print("Vn: ",Vn)
             HUD= 1/ (epsilon+ T[y])
             # print("HUD: ",HUD)
@@ -385,7 +411,8 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             # print("CBS akhir:",CBS)
 
         #END OF IWD
-        iwdEnd = Time.time()
+
+        # iwdEnd = Time.time()
 
         #START ALGORITMA PENJADWALAN DAN MAKESPAN
         ST= dict(STA)
@@ -543,7 +570,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             SIB= Sn
             STB= ST
             FTB= FT
-        makespanEnd = Time.time()
+        # makespanEnd = Time.time()
         # print "IWD took {} seconds and makespan took {} seconds for this waterdrop.".format(iwdEnd-iwdStart, makespanEnd-iwdEnd)
         # print "waterdrop {} of iteration {} done.".format(n,iterasi)
     # print("MSIB: ",MSIB)
@@ -572,5 +599,5 @@ print("best iteration: {}").format(best)
 
 endTime = Time.time()
 print("time elapsed: {}").format(endTime - startTime)
-
+print "dice time max: {}".format(max(dicetime))
 # print nodes
