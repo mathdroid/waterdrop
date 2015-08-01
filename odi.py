@@ -1,5 +1,8 @@
+#mdules
 import random
 import time as Time
+# import numpy as np
+# import matplotlib.pyplot as plt
 
 #globals
 J = 0
@@ -15,7 +18,34 @@ initsoil = 10000 #soil initial
 initvel = 200 #velocity initial
 epsilon = 0.000001 #epsilon
 
+N = 10 #waterdropMax
+itermax = 20 #iterationMax
+rhon = 0.5 #localUpdater
+rhoiwd = 0.1 #globalUpdater
+
 nodes = {}
+
+allsoil= [ ]
+soil= [ ]
+fsoil= [ ]
+gsoil= [ ]
+pxy= [ ]
+
+STA= { } #start time
+FTA= { } #finish time
+SGMA= { } #start gap machine
+FGMA= { } #finish gap machine
+PGMA= { } #panjang gap machine
+SGJA= { } #start gap job
+FGJA= { } #finish gap job
+PGJA= { } #panjang gap job
+dA= [ ]
+eA= [ ]
+OMA= [ ]
+OJA= [ ]
+
+MSTB= 999999
+TB= [ ]
 
 #classes
 class Soil:
@@ -35,7 +65,6 @@ class Node:
 class Waterdrop:
     def __init__(self):
         self.velocity = initvel
-
 
 #funcs
 def updategapj(j,i,w, ST, SGJ, FT, FGJ, PGJ, e):
@@ -148,9 +177,8 @@ for a in range(1,J+1):
     for b in range(1,I+1):
         job.append(a)
         mesin.append(b)
-
         node = Node(a, b, int(random.randint(1,250)))
-        if sampleT.has_key((a,b)):
+        if (a,b) in sampleT:
             node.duration = sampleT[(a,b)]
         print "node ({},{}) duration: {}".format(node.job, node.machine, node.duration)
         nodes[(a,b)] = node
@@ -173,10 +201,7 @@ print("START INISIALISASI PARAMETER ALGORITMA")
 # rhon = float(input("Parameter update local: "))
 # rhoiwd = float(input("Parameter update global: "))
 
-N = 10 #waterdropMax
-itermax = 20 #iterationMax
-rhon = 0.5 #localUpdater
-rhoiwd = 0.1 #globalUpdater
+
 
 print("initsoil = {}").format(initsoil)
 print("initvel = {}").format(initvel)
@@ -197,11 +222,6 @@ print(" ")
 #ALGO SET SOIL X,Y = INITSOIL DAN SOIL2 LAINNYA
 print("START ALGORITMA SET SOIL(X,Y) = INITSOIL DAN SOIL-SOIL LAINNYA")
 
-allsoil= [ ]
-soil= [ ]
-fsoil= [ ]
-gsoil= [ ]
-pxy= [ ]
 for a in range(len(BSA)-1):
     for b in range(a+1,len(BSA)):
         x= BSA[a]
@@ -236,18 +256,6 @@ print("END ALGORITMA SET SOIL(X,Y) = INITSOIL")
 print(" ")
 
 print("START ALGORITMA SET ST, FT, d, e, SGM, FGM, SGJ, FGJ")
-STA= { } #start time
-FTA= { } #finish time
-SGMA= { } #start gap machine
-FGMA= { } #finish gap machine
-PGMA= { }
-SGJA= { } #start gap job
-FGJA= { } #finish gap job
-PGJA= { }
-dA= [ ]
-eA= [ ]
-OMA= [ ]
-OJA= [ ]
 
 for q in range(0, len(BSA)): #buat ngeset ST sama FT= 0
     helper = BSA[q]
@@ -276,15 +284,14 @@ print("END ALGORITMA SET ST, FT, d, e, SGM, FGM, SGJ, FGJ")
 
 #ALGORITMA BESAR
 print("START ALGORITMA UMUM")
-MSTB= 999999
-TB= [ ]
+
 for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
     MSIB= 999999
     IB= [ ]
     SIB= 0
     for n in range(1, N+1): #Mulai loop buat sekian n
         BS= list(BSA) #unfinished city
-        MS= 0
+        MS= 0 #makespan of current waterdrop
         VC= [ ] #visited city
         CVC= 0 #visited counter
         CBS= len(BS) #unfinished counter
@@ -304,10 +311,12 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
 
         #START ALGORITMA IWD
         # print("BS:",BS)
+        iwdStart = Time.time()
         for a in range(0,CBS): #Mulai loop buat ngisi VC
-            sigmaf= 0
-            p= 0
-            minsoil= min(soil)
+            sigmaf = 0
+            p = 0
+            minsoil = min(soil)
+            # minsoil = reduce(lambda x,y: x if x<y else y, soil)
             # print("minsoil:",minsoil)
             for q in range(0,CBS): #loop buat fsoil
                 y= BS[q]
@@ -336,7 +345,6 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             u= random.uniform(0,1)
             # print("u:",u)
             q= 0
-
             while u > p: #loop buat milih y
                 y= BS[q]
 
@@ -345,12 +353,11 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 q= q + 1
                 # print("y:",y)
                 # print("p:",p)
-
             else:
                 VC.append(y)
                 BS.remove(y)
-                CVC= len(VC)
-                CBS= len(BS)
+                CVC= CVC+1
+                CBS= CBS-1
             # print("tji: ",T[y])
             #Rumus-rumus buat update
 
@@ -378,7 +385,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             # print("CBS akhir:",CBS)
 
         #END OF IWD
-
+        iwdEnd = Time.time()
 
         #START ALGORITMA PENJADWALAN DAN MAKESPAN
         ST= dict(STA)
@@ -394,14 +401,8 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         OM= list(OMA)
         OJ= list(OJA)
 
-
-
-
-
-
-
         for q in range(CVC): #mulai pengisian gantt chart
-            (j,i)=VC[q]
+            (j,i) = VC[q]
             # print("j,i: ",j,i)
             if OM[i]== 0: #cek OMi = 0
                 if OJ[j]==0: #cek OJj=0
@@ -542,6 +543,8 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             SIB= Sn
             STB= ST
             FTB= FT
+        makespanEnd = Time.time()
+        # print "IWD took {} seconds and makespan took {} seconds for this waterdrop.".format(iwdEnd-iwdStart, makespanEnd-iwdEnd)
         # print "waterdrop {} of iteration {} done.".format(n,iterasi)
     # print("MSIB: ",MSIB)
     # print("IB: ",IB)
