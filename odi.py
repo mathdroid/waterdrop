@@ -50,6 +50,8 @@ TB= [ ]
 soils = {}
 
 dicetime = []
+iwdtimes = []
+makespantimes = []
 #classes
 class Soil:
     def __init__(self, node1, node2, defsoil, defchance):
@@ -64,7 +66,7 @@ class Node:
         self.job = job
         self.machine = machine
         self.duration = duration
-        self.value = ((job, machine), duration)
+        self.value = (job, machine)
 
 class Waterdrop:
     def __init__(self):
@@ -233,8 +235,14 @@ for a in range(len(BSA)-1):
         allsoil.append((x,y))
         allsoil.append((y,x))
 
-# for key in nodes.keys():
+for key, value in nodes.iteritems():
+    for key2, value2 in nodes.iteritems():
+        if not key==key2:
+            soils[(key,key2)] = Soil(value, value2, 10000, 0)
+        if (key2,key) in soils:
+            del soils[(key2,key)]
 
+print "soils length: {}".format(len(soils))
 # print("allsoil: {}").format(allsoil)
 allsoilLength = len(allsoil)
 
@@ -320,7 +328,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
 
         #START ALGORITMA IWD
         # print("BS:",BS)
-        # iwdStart = Time.time()
+        iwdStart = Time.time()
         while CBS>0: #Mulai loop buat ngisi VC
             sigmaf = 0
             p = 0
@@ -340,8 +348,9 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
 
             #offsetting all soils with the minsoil, if minsoil if negative.
             #
-            for q in range(0,CBS): #loop buat fsoil
-                y= BS[q]
+            # for q in range(0,CBS): #loop buat fsoil
+            #     y= BS[q]
+            for y in BS:
                 straightIndex = allsoil.index((x,y))
                 revIndex = allsoil.index((y,x))
                 if minsoil>= 0:
@@ -357,9 +366,9 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 sigmaf += fsoil[straightIndex]
             # print("sigmaf:",sigmaf)
 
-            for q in range(0,CBS): #loop buat ngitung pxy
-                y= BS[q]
-
+            # for q in range(0,CBS): #loop buat ngitung pxy
+            #     y= BS[q]
+            for y in BS:
                 straightIndex = allsoil.index((x,y))
                 revIndex = allsoil.index((y,x))
                 pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
@@ -412,7 +421,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
 
         #END OF IWD
 
-        # iwdEnd = Time.time()
+        iwdEnd = Time.time()
 
         #START ALGORITMA PENJADWALAN DAN MAKESPAN
         ST= dict(STA)
@@ -570,7 +579,9 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             SIB= Sn
             STB= ST
             FTB= FT
-        # makespanEnd = Time.time()
+        makespanEnd = Time.time()
+        iwdtimes.append(iwdEnd-iwdStart)
+        makespantimes.append(makespanEnd-iwdEnd)
         # print "IWD took {} seconds and makespan took {} seconds for this waterdrop.".format(iwdEnd-iwdStart, makespanEnd-iwdEnd)
         # print "waterdrop {} of iteration {} done.".format(n,iterasi)
     # print("MSIB: ",MSIB)
@@ -600,4 +611,6 @@ print("best iteration: {}").format(best)
 endTime = Time.time()
 print("time elapsed: {}").format(endTime - startTime)
 print "dice time max: {}".format(max(dicetime))
+print "iwd time max: {}".format(max(iwdtimes))
+print "makespan time max: {}".format(max(makespantimes))
 # print nodes
