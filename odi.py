@@ -186,15 +186,15 @@ for a in range(1,J+1):
         node = Node(a, b, int(random.randint(1,250)))
         if (a,b) in sampleT:
             node.duration = sampleT[(a,b)]
-        print "node ({},{}) duration: {}".format(node.job, node.machine, node.duration)
+        print("node ({},{}) duration: {}".format(node.job, node.machine, node.duration))
         nodes[(a,b)] = node
 
         T[a,b] = nodes[(a,b)].duration
         # T[a,b] = int(input((a,b)))
 
-print "Nodes: {}".format(len(nodes))
-print("job: {}").format(job)
-print("mesin: {}").format(mesin)
+print("Nodes: {}".format(len(nodes)))
+print("job: {}".format(job))
+print("mesin: {}".format(mesin))
 print("END INISIALISASI PARAMETER MASALAH")
 print(" ")
 
@@ -209,8 +209,8 @@ print("START INISIALISASI PARAMETER ALGORITMA")
 
 
 
-print("initsoil = {}").format(initsoil)
-print("initvel = {}").format(initvel)
+print("initsoil = {}".format(initsoil))
+print("initvel = {}".format(initvel))
 print("END INISIALISASI PARAMETER ALGORITMA")
 print(" ")
 
@@ -221,7 +221,7 @@ print("START ALGORITMA PENYUSUN LIST NODE AWAL")
 BSA = list(zip(job, mesin))
 #nodes
 
-print ("Node yang mungkin dilalui: {}").format(BSA)
+print ("Node yang mungkin dilalui: {}".format(BSA))
 print("END ALGORITMA PENYUSUN LIST NODE AWAL")
 print(" ")
 
@@ -235,14 +235,14 @@ for a in range(len(BSA)-1):
         allsoil.append((x,y))
         allsoil.append((y,x))
 
-for key, value in nodes.iteritems():
-    for key2, value2 in nodes.iteritems():
+for key, value in nodes.items():
+    for key2, value2 in nodes.items():
         if not key==key2:
             soils[(key,key2)] = Soil(value, value2, 10000, 0)
         if (key2,key) in soils:
             del soils[(key2,key)]
 
-print "soils length: {}".format(len(soils))
+print("soils length: {}".format(len(soils)))
 # print("allsoil: {}").format(allsoil)
 allsoilLength = len(allsoil)
 
@@ -601,16 +601,16 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         STT= STB
         FTT= FTB
         best= iterasi
-    print "iteration number {} done. MSIB: {}".format(iterasi, MSIB)
-print("MSTB: {}").format(MSTB)
-print("TB: {}").format(TB)
-print("Start time best: {}").format(STT)
-print("Finish time best: {}").format(FTT)
-print("best iteration: {}").format(best)
+    print("iteration number {} done. MSIB: {}".format(iterasi, MSIB))
+print("MSTB: {}".format(MSTB))
+print("TB: {}".format(TB))
+print("Start time best: {}".format(STT))
+print("Finish time best: {}".format(FTT))
+print("best iteration: {}".format(best))
 
 endTime = Time.time()
-print("time elapsed: {}").format(endTime - startTime)
-print "dice time max: {}".format(max(dicetime))
-print "iwd time max: {}".format(max(iwdtimes))
-print "makespan time max: {}".format(max(makespantimes))
+print("time elapsed: {}".format(endTime - startTime))
+print("dice time max: {}".format(max(dicetime)))
+print("iwd time max: {}".format(max(iwdtimes)))
+print("makespan time max: {}".format(max(makespantimes)))
 # print nodes
