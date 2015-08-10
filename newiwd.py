@@ -22,8 +22,8 @@ initsoil = 10000 #soil initial
 initvel = 200 #velocity initial
 epsilon = 0.000001 #epsilon
 
-N = 2 #waterdropMax
-itermax = 2 #iterationMax
+N = 100 #waterdropMax
+itermax = 100 #iterationMax
 rhon = 0.5 #localUpdater
 rhoiwd = 0.5 #globalUpdater
 
@@ -181,8 +181,10 @@ def jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ): #a=j, b=i
 
 #initialization
 print("START INISIALISASI PARAMETER MASALAH")
-J = int(input("Jumlah job: "))
-I = int(input("Jumlah mesin: "))
+# J = int(input("Jumlah job: "))
+# I = int(input("Jumlah mesin: "))
+J = 4
+I = 4
 startTime = Time.time()
 for a in range(1,J+1):
     for b in range(1,I+1):
@@ -370,13 +372,17 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 sigmaf += path.fsoil
                 soils[address] = path
 
+            # totalpxy=0
             for city in unfinished_cities:
                 address = (current_node,city)
                 if address not in soils:
                     address = (city,current_node)
-                soils[address].pxy = (soils[address].fsoil / sigmaf)
-                print("chance = {}/{} = {} == {}".format(soils[address].fsoil,sigmaf,soils[address].pxy,soils[address].fsoil/sigmaf))
-
+                soils[address].pxy = ((100000*soils[address].fsoil) / (100000*sigmaf))
+                # print("{} chance = {}/{} = {} == {}".format(address,soils[address].fsoil,sigmaf,soils[address].pxy,soils[address].fsoil/sigmaf))
+                # totalpxy+=soils[address].pxy
+            # print(20*"=")
+            # print("totalchance",totalpxy)
+            # print(20*"=")
             # # for city in BS:
             # for y in BS:
             #     if soil[allsoil.index((x,y))] < minsoil:
@@ -409,9 +415,10 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             chancetime = Time.time()
             the_city = current_node
             the_address = ()
-            totalchance = 0
-            for road in soils:
-                totalchance += soils[road].pxy
+
+            # totalchance = 0
+            # for road in soils:
+            #     totalchance += soils[road].pxy
             #     print("soil: {} - {} === {}".format(road,soils[road].fsoil/sigmaf,totalchance))
             # print("!!!!!!!!!!!!!!!!!!!!!!!!!")
             # print("total chance is ",totalchance)
@@ -424,9 +431,10 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                     address = (city[0],current_node)
                 the_address=address
                 the_city=city[0]
+                # print("u:{}, p:{}, not met. appending p with {}, q = {}".format(u,p,soils[the_address].pxy,q))
                 p += soils[the_address].pxy
                 q += 1
-            # print("found on q = ",q)
+            # print("found on p = {}, q = {}".format(p,q))
             dicetime.append(Time.time()-chancetime)
             finished_cities_list.append(city[0])
             finished_cities[city[0]] = unfinished_cities[city[0]]
