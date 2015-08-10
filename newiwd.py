@@ -22,10 +22,10 @@ initsoil = 10000 #soil initial
 initvel = 200 #velocity initial
 epsilon = 0.000001 #epsilon
 
-N = 500 #waterdropMax
-itermax = 200 #iterationMax
-rhon = 0.9 #localUpdater
-rhoiwd = 0.9 #globalUpdater
+N = 100 #waterdropMax
+itermax = 500 #iterationMax
+rhon = 0.3 #localUpdater
+rhoiwd = 0.3 #globalUpdater
 
 nodes = {}
 
@@ -346,7 +346,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         iwdStart = Time.time()
         while len(unfinished_cities)>0: #Mulai loop buat ngisi VC
             sigmaf = 0
-            minsoil = 10001
+            minsoil = 999999
 
             for city in unfinished_cities:
                 address = (current_node,city)
