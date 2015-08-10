@@ -18,8 +18,8 @@ initsoil = 10000 #soil initial
 initvel = 200 #velocity initial
 epsilon = 0.000001 #epsilon
 
-N = 100 #waterdropMax
-itermax = 500 #iterationMax
+N = 4 #waterdropMax
+itermax = 4 #iterationMax
 rhon = 0.5 #localUpdater
 rhoiwd = 0.1 #globalUpdater
 
@@ -402,33 +402,36 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             u= random.uniform(0,1)
             q= 0
             chancetime = Time.time()
-
+            the_city = current_node
+            the_address = ()
             for city in unfinished_cities:
                 address = (current_node,city)
                 if address not in soils:
                     address = (city,current_node)
                 path = soils[address]
-                if u > p:
-                    dicetime.append(Time.time()-chancetime)
-                    finished_cities[city] = unfinished_cities[city]
-                    finished_cities_list.append(city)
-                    del unfinished_cities[city]
-                    count_unfinished -= 1
-                    count_finished += 1
-
-                    Vn += + av / (bv + cv * path.soil**2)
-                    HUD = 1/ (epsilon+ nodes[city].duration)
-                    time = HUD / Vn
-                    dsoil = aso / (bso + cso * time ** 2)
-                    path.soil = (1 - rhon) * path.soil - rhon * dsoil
-                    Sn += dsoil
-                    soils[address] = path
-                    current_node = city
-                    # print("current_node: ", current_node)
+                if u < p:
+                    the_city = city
+                    the_address = address
                     break
                 else:
                     p += path.pxy
+            print("{}. {} - next address found at {} with u = {} > p = {}".format(len(finished_cities_list),current_node,the_address,u,p))
+            dicetime.append(Time.time()-chancetime)
+            finished_cities[the_city] = unfinished_cities[the_city]
+            finished_cities_list.append(the_city)
+            del unfinished_cities[the_city]
+            count_unfinished -= 1
+            count_finished += 1
 
+            Vn += av / (bv + cv * path.soil**2)
+            HUD = 1/ (epsilon+ nodes[city].duration)
+            time = HUD / Vn
+            dsoil = aso / (bso + cso * time ** 2)
+            path.soil = (1 - rhon) * path.soil - rhon * dsoil
+            Sn += dsoil
+            soils[address] = path
+            current_node = the_city
+            # print("current_node: ", current_node)
             # while u > p: #loop buat milih y
             #     y= BS[q]
             #
