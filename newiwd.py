@@ -402,38 +402,43 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             u= random.uniform(0,1)
             q= 0
             chancetime = Time.time()
-            
+            should_break = False
             for city in unfinished_cities:
-                address = (current_node,city)
-                if address not in soils:
-                    address = (city,current_node)
-                path = soils[address]
-                print(path.pxy)
-                if u <= p:
+                if not should_break:
+                    address = (current_node,city)
+                    if address not in soils:
+                        address = (city,current_node)
+                    path = soils[address]
+                    print(path.pxy)
+                    if u <= p:
 
-                    print("p is larger, u = {}, p = {}".format(u,p))
-                    finished_cities[city] = unfinished_cities[city]
-                    finished_cities_list.append(city)
-                    del unfinished_cities[city]
-                    count_unfinished -= 1
-                    count_finished += 1
+                        print("p is larger, u = {}, p = {}".format(u,p))
+                        finished_cities[city] = unfinished_cities[city]
+                        finished_cities_list.append(city)
+                        del unfinished_cities[city]
+                        count_unfinished -= 1
+                        count_finished += 1
 
-                    Vn += + av / (bv + cv * path.soil**2)
-                    HUD = 1/ (epsilon+ nodes[city].duration)
-                    time = HUD / Vn
-                    dsoil = aso / (bso + cso * time ** 2)
-                    path.soil = (1 - rhon) * path.soil - rhon * dsoil
-                    Sn += dsoil
-                    soils[address] = path
-                    current_node = city
-                    # print("current_node: ", current_node)
+                        Vn += + av / (bv + cv * path.soil**2)
+                        HUD = 1/ (epsilon+ nodes[city].duration)
+                        time = HUD / Vn
+                        dsoil = aso / (bso + cso * time ** 2)
+                        path.soil = (1 - rhon) * path.soil - rhon * dsoil
+                        Sn += dsoil
+                        soils[address] = path
+                        current_node = city
+                        # print("current_node: ", current_node)
 
-                    dicetime.append(Time.time()-chancetime)
-                    break
+                        dicetime.append(Time.time()-chancetime)
+                        should_break = True
+                        break
+                    else:
+                        print("p is smaller, u = {}, p = {}".format(u,p))
+                        p += path.pxy
+                        # print("current p: ", p)
                 else:
-                    print("p is smaller, u = {}, p = {}".format(u,p))
-                    p += path.pxy
-                    # print("current p: ", p)
+                    print("breaking")
+                    break
             # while u > p: #loop buat milih y
             #     y= BS[q]
             #
