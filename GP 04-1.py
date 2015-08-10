@@ -377,7 +377,8 @@ for iterasi in range(1,itermax + 1): #Mulai loop buat sekian iterasi
         STT= STB
         FTT= FTB
         best= iterasi
-
+    for idx in soil:
+        print("soil[] = {}".format(idx))
 print("MSTB: ",MSTB)
 print("TB: ",TB)
 print("Start time best: ",STT)
