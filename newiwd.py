@@ -19,7 +19,7 @@ initvel = 200 #velocity initial
 epsilon = 0.000001 #epsilon
 
 N = 100 #waterdropMax
-itermax = 20 #iterationMax
+itermax = 500 #iterationMax
 rhon = 0.5 #localUpdater
 rhoiwd = 0.1 #globalUpdater
 
@@ -325,69 +325,135 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         CVC= len(VC)
         CBS= len(BS)
 
-        curNode = x
+        current_node = x
 
+        unfinished_cities = dict(nodes)
+        finished_cities = {}
+        finished_cities_list = []
+        finished_cities_list.append(x)
+        finished_cities[x] = unfinished_cities[x]
+        del unfinished_cities[x]
+
+        count_unfinished = len(unfinished_cities)
+        count_finished = len(finished_cities)
+
+        # print("first node: ",x)
         #START ALGORITMA IWD
         iwdStart = Time.time()
-        while CBS>0: #Mulai loop buat ngisi VC
+        while len(unfinished_cities)>0: #Mulai loop buat ngisi VC
             sigmaf = 0
             p = 0
             minsoil = 10001
 
-            # for city in BS:
-            for y in BS:
-                if soil[allsoil.index((x,y))] < minsoil:
-                    minsoil= soil[allsoil.index((x,y))]
+            for city in unfinished_cities:
+                address = (current_node,city)
+                if address not in soils:
+                    address = (city,current_node)
+                if soils[address].soil < minsoil:
+                    minsoil = soils[address].soil
+
+            for city in unfinished_cities:
+                address = (current_node,city)
+                if address not in soils:
+                    address = (city,current_node)
+                path = soils[address]
+
+                if minsoil >= 0:
+                    path.gsoil = path.soil
+                else:
+                    path.gsoil = path.soil - minsoil
+                path.fsoil = 1 / (epsilon + path.gsoil)
+                sigmaf += path.fsoil
+                soils[address] = path
+
+            for city in unfinished_cities:
+                address = (current_node,city)
+                if address not in soils:
+                    address = (city,current_node)
+                soils[address].pxy = (soils[address].fsoil / sigmaf)
+
+
+            # # for city in BS:
+            # for y in BS:
+            #     if soil[allsoil.index((x,y))] < minsoil:
+            #         minsoil= soil[allsoil.index((x,y))]
 
 
 
             #offsetting all soils with the minsoil, if minsoil if negative.
-            for y in BS:
-                straightIndex = allsoil.index((x,y))
-                revIndex = allsoil.index((y,x))
-                if minsoil>= 0:
-                    gsoil[straightIndex] = soil[straightIndex]
-                    gsoil[revIndex] = gsoil[straightIndex]
-                else:
-                    gsoil[straightIndex] = soil[straightIndex] - minsoil
-                    gsoil[revIndex] = gsoil[straightIndex]
-                fsoil[straightIndex] = 1/ (epsilon + gsoil[straightIndex])
-                fsoil[revIndex] =  fsoil[straightIndex]
-                sigmaf += fsoil[straightIndex]
-            for y in BS:
-                straightIndex = allsoil.index((x,y))
-                revIndex = allsoil.index((y,x))
-                pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
-                pxy[revIndex]= pxy[straightIndex]
+            # for y in BS:
+            #     straightIndex = allsoil.index((x,y))
+            #     revIndex = allsoil.index((y,x))
+            #     if minsoil>= 0:
+            #         gsoil[straightIndex] = soil[straightIndex]
+            #         gsoil[revIndex] = gsoil[straightIndex]
+            #     else:
+            #         gsoil[straightIndex] = soil[straightIndex] - minsoil
+            #         gsoil[revIndex] = gsoil[straightIndex]
+            #     fsoil[straightIndex] = 1/ (epsilon + gsoil[straightIndex])
+            #     fsoil[revIndex] =  fsoil[straightIndex]
+            #     sigmaf += fsoil[straightIndex]
+            # for y in BS:
+            #     straightIndex = allsoil.index((x,y))
+            #     revIndex = allsoil.index((y,x))
+            #     pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
+            #     pxy[revIndex]= pxy[straightIndex]
 
             u= random.uniform(0,1)
             q= 0
             chancetime = Time.time()
-            while u > p: #loop buat milih y
-                y= BS[q]
 
-                straightIndex = allsoil.index((x,y))
-                p= p + pxy[straightIndex]
-                q= q + 1
-            dicetime.append(Time.time()-chancetime)
-            VC.append(y)
-            BS.remove(y)
-            CVC += 1
-            CBS -= 1
+            for city in unfinished_cities:
+                address = (current_node,city)
+                if address not in soils:
+                    address = (city,current_node)
+                path = soils[address]
+                if u > p:
+                    dicetime.append(Time.time()-chancetime)
+                    finished_cities[city] = unfinished_cities[city]
+                    finished_cities_list.append(city)
+                    del unfinished_cities[city]
+                    count_unfinished -= 1
+                    count_finished += 1
+
+                    Vn += + av / (bv + cv * path.soil**2)
+                    HUD = 1/ (epsilon+ nodes[city].duration)
+                    time = HUD / Vn
+                    dsoil = aso / (bso + cso * time ** 2)
+                    path.soil = (1 - rhon) * path.soil - rhon * dsoil
+                    Sn += dsoil
+                    soils[address] = path
+                    current_node = city
+                    # print("current_node: ", current_node)
+                    break
+                else:
+                    p += path.pxy
+
+            # while u > p: #loop buat milih y
+            #     y= BS[q]
+            #
+            #     straightIndex = allsoil.index((x,y))
+            #     p= p + pxy[straightIndex]
+            #     q= q + 1
+            # dicetime.append(Time.time()-chancetime)
+            # VC.append(y)
+            # BS.remove(y)
+            # CVC += 1
+            # CBS -= 1
 
             #Rumus-rumus buat update
 
-            straightIndex = allsoil.index((x,y))
-            revIndex = allsoil.index((y,x))
-            Vn= Vn + av/ (bv+ cv* soil[straightIndex]**2)
-            HUD= 1/ (epsilon+ T[y])
-            time= HUD/ Vn
-            dsoil= aso/ (bso+ cso* time* time)
-            soil[straightIndex]= (1- rhon)*soil[straightIndex]- rhon* dsoil
-            soil[revIndex]= soil[straightIndex]
-            Sn = Sn+ dsoil
-            x=y
-
+            # straightIndex = allsoil.index((x,y))
+            # revIndex = allsoil.index((y,x))
+            # Vn= Vn + av/ (bv+ cv* soil[straightIndex]**2)
+            # HUD= 1/ (epsilon+ T[y])
+            # time= HUD/ Vn
+            # dsoil= aso/ (bso+ cso* time* time)
+            # soil[straightIndex]= (1- rhon)*soil[straightIndex]- rhon* dsoil
+            # soil[revIndex]= soil[straightIndex]
+            # Sn = Sn+ dsoil
+            # x=y
+        # print(finished_cities_list)
         #END OF IWD
         iwdEnd = Time.time()
 
@@ -405,8 +471,9 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         OM= list(OMA)
         OJ= list(OJA)
 
-        for q in range(CVC): #mulai pengisian gantt chart
-            (j,i) = VC[q]
+        # print("finished_cities_list:", finished_cities_list)
+        for q in range(count_finished): #mulai pengisian gantt chart
+            (j,i) = finished_cities_list[q]
             # print("j,i: ",j,i)
             if OM[i]== 0: #cek OMi = 0
                 if OJ[j]==0: #cek OJj=0
@@ -525,24 +592,30 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
 
         if MS < MSIB: #update MSIB
             MSIB= MS
-            IB= VC
+            IB= finished_cities_list
             SIB= Sn
             STB= ST
             FTB= FT
+
         makespanEnd = Time.time()
         iwdtimes.append(iwdEnd-iwdStart)
         makespantimes.append(chancetime-iwdStart)
         # print "IWD took {} seconds and makespan took {} seconds for this waterdrop.".format(iwdEnd-iwdStart, makespanEnd-iwdEnd)
         # print "waterdrop {} of iteration {} done.".format(n,iterasi)
 
-    for q in range(CVC-1): #update soil
+    for q in range(count_finished-1): #update soil
         x= IB[q]
         y= IB[q+1]
+        address = (x,y)
+        # print(address)
+        if address not in soils:
+            address = (y,x)
+        soils[address].soil = (1+ rhoiwd)* soils[address].soil - rhoiwd*(1/(J*I-1))*SIB
 
-        straightxIndex = allsoil.index((x,y))
-        revxIndex = allsoil.index((y,x))
-        soil[straightxIndex]= (1+ rhoiwd)* soil[straightxIndex]-rhoiwd*(1/(J*I-1))*SIB
-        soil[revxIndex]= soil[straightxIndex]
+        # straightxIndex = allsoil.index((x,y))
+        # revxIndex = allsoil.index((y,x))
+        # soil[straightxIndex]= (1+ rhoiwd)* soil[straightxIndex]-rhoiwd*(1/(J*I-1))*SIB
+        # soil[revxIndex]= soil[straightxIndex]
 
     if MSIB< MSTB: #update MSTB
         MSTB= MSIB
@@ -550,15 +623,15 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         STT= STB
         FTT= FTB
         best= iterasi
-    print("iteration number {} done. MSIB: {}".format(iterasi, MSIB))
-
+    print("iteration number {} done. MSIB: {}. finished_cities_list : {}".format(iterasi, MSIB, finished_cities_list))
+# print("MSTB: {}".format(MSTB))
+# print("TB: {}".format(TB))
 print("Start time best: {}".format(STT))
 print("Finish time best: {}".format(FTT))
 print("best iteration: {}".format(best))
 
 print("MSTB: {}".format(MSTB))
 print("TB: {}".format(TB))
-
 endTime = Time.time()
 print("time elapsed: {}".format(endTime - startTime))
 print("dice time max: {}".format(max(dicetime)))
