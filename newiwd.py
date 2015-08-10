@@ -22,10 +22,10 @@ initsoil = 10000 #soil initial
 initvel = 200 #velocity initial
 epsilon = 0.000001 #epsilon
 
-N = 100 #waterdropMax
+N = 500 #waterdropMax
 itermax = 200 #iterationMax
-rhon = 0.3 #localUpdater
-rhoiwd = 0.3 #globalUpdater
+rhon = 0.9 #localUpdater
+rhoiwd = 0.9 #globalUpdater
 
 nodes = {}
 
@@ -330,7 +330,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         CBS= len(BS)
 
         current_node = x
-
+        # print("first node = ", current_node)
         unfinished_cities = dict(nodes)
         finished_cities = {}
         finished_cities_list = []
@@ -346,7 +346,6 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         iwdStart = Time.time()
         while len(unfinished_cities)>0: #Mulai loop buat ngisi VC
             sigmaf = 0
-            p = 0
             minsoil = 10001
 
             for city in unfinished_cities:
@@ -404,6 +403,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
             #     pxy[revIndex]= pxy[straightIndex]
 
             u= random.uniform(0,1)
+            p = 0
             q= 0
             chancetime = Time.time()
             the_city = current_node
@@ -420,6 +420,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 the_city=city[0]
                 p += soils[the_address].pxy
                 q += 1
+            # print("found on q = ",q)
             dicetime.append(Time.time()-chancetime)
             finished_cities_list.append(city[0])
             finished_cities[city[0]] = unfinished_cities[city[0]]
@@ -634,7 +635,7 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         STT= STB
         FTT= FTB
         best= iterasi
-    print("iteration number {} done. MSIB: {}. Best: {}".format(iterasi, MSIB, MSTB))
+    print("iteration number {} done. MSIB: {}. Best: {}. Path: {}".format(iterasi, MSIB, MSTB, IB))
 # print("MSTB: {}".format(MSTB))
 # print("TB: {}".format(TB))
 print("Start time best: {}".format(STT))
