@@ -24,8 +24,8 @@ epsilon = 0.000001 #epsilon
 
 N = 100 #waterdropMax
 itermax = 500 #iterationMax
-rhon = 0.3 #localUpdater
-rhoiwd = 0.3 #globalUpdater
+rhon = 0.5 #localUpdater
+rhoiwd = 0.5 #globalUpdater
 
 nodes = {}
 
@@ -49,6 +49,7 @@ OMA= [ ]
 OJA= [ ]
 
 MSTB= 999999
+minsoil = 999999
 TB= [ ]
 
 soils = {}
@@ -346,12 +347,12 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         iwdStart = Time.time()
         while len(unfinished_cities)>0: #Mulai loop buat ngisi VC
             sigmaf = 0
-            minsoil = 999999
-
+            minsoil = 9999999
             for city in unfinished_cities:
                 address = (current_node,city)
                 if address not in soils:
                     address = (city,current_node)
+
                 if soils[address].soil < minsoil:
                     minsoil = soils[address].soil
 
