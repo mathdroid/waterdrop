@@ -20,12 +20,12 @@ av, bv, cv = 1, 0.01, 1 #algo params for velocity
 aso, bso, cso = 1, 0.01, 1 #algo params for soil
 initsoil = 10000 #soil initial
 initvel = 200 #velocity initial
-epsilon = 0.000001 #epsilon
+epsilon = 0.0001 #epsilon
 
 N = 100 #waterdropMax
 itermax = 500 #iterationMax
-rhon = 0.001 #localUpdater
-rhoiwd = 0.001 #globalUpdater
+rhon = 0.3 #localUpdater
+rhoiwd = 0.3 #globalUpdater
 
 nodes = {}
 
