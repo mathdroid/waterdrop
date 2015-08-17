@@ -13,6 +13,8 @@ T = { }
 
 #7-7
 sampleT = {(7, 3): 227, (4, 7): 166, (1, 3): 126, (6, 6): 165, (5, 6): 180, (5, 4): 45, (2, 1): 107, (6, 2): 74, (1, 6): 323, (5, 1): 64, (3, 7): 165, (2, 5): 220, (7, 2): 234, (1, 2): 176, (3, 1): 214, (6, 7): 61, (5, 5): 71, (7, 6): 8, (4, 4): 321, (6, 3): 98, (1, 5): 101, (3, 6): 130, (2, 2): 88, (3, 3): 118, (5, 3): 191, (4, 1): 5, (1, 1): 123, (6, 4): 302, (3, 2): 181, (2, 6): 11, (7, 1): 398, (4, 5): 204, (1, 4): 79, (7, 7): 3, (7, 5): 55, (2, 3): 154, (4, 2): 120, (6, 5): 211, (3, 5): 42, (2, 7): 244, (4, 6): 103, (3, 4): 56, (6, 1): 89, (5, 7): 238, (7, 4): 75, (4, 3): 33, (1, 7): 23, (5, 2): 123, (2, 4): 111}
+lower_bound = 1011
+
 #10-10
 # sampleT = {(7, 3): 88, (6, 9): 1, (1, 3): 86, (4, 8): 161, (2, 8): 55, (9, 8): 4, (6, 2): 2, (1, 6): 21, (7, 10): 1, (3, 7): 2, (2, 5): 1, (8, 5): 1, (5, 8): 1, (10, 8): 308, (6, 7): 1, (5, 5): 667, (10, 7): 6, (3, 10): 1, (6, 10): 75, (8, 10): 230, (3, 5): 2, (1, 1): 185, (4, 10): 676, (3, 2): 3, (2, 6): 2, (8, 2): 12, (4, 5): 1, (9, 3): 1, (1, 4): 6, (3, 9): 5, (2, 3): 3, (1, 9): 13, (8, 7): 419, (4, 2): 3, (9, 6): 183, (6, 5): 4, (5, 3): 1, (10, 5): 1, (6, 8): 1, (3, 1): 20, (9, 9): 147, (1, 7): 234, (7, 8): 195, (2, 4): 55, (8, 4): 1, (5, 9): 52, (4, 7): 1, (9, 1): 5, (6, 6): 41, (5, 6): 92, (10, 6): 1, (7, 7): 2, (2, 1): 282, (8, 9): 91, (9, 4): 1, (5, 1): 6, (10, 3): 185, (7, 2): 596, (1, 2): 2, (3, 8): 6, (7, 5): 1, (4, 9): 3, (3, 3): 13, (2, 9): 586, (8, 1): 3, (4, 4): 9, (6, 3): 573, (1, 5): 320, (3, 6): 458, (2, 2): 1, (1, 10): 1, (8, 6): 101, (4, 1): 1, (10, 9): 1, (9, 7): 332, (6, 4): 19, (5, 4): 178, (10, 4): 240, (7, 1): 14, (2, 10): 13, (9, 10): 1, (10, 1): 201, (7, 9): 101, (2, 7): 2, (8, 3): 5, (5, 10): 1, (4, 6): 100, (10, 10): 1, (9, 2): 324, (3, 4): 490, (6, 1): 283, (5, 7): 1, (7, 4): 1, (1, 8): 132, (8, 8): 137, (4, 3): 45, (9, 5): 2, (5, 2): 1, (7, 6): 1, (10, 2): 56}
 
@@ -57,6 +59,7 @@ soils = {}
 dicetime = []
 iwdtimes = []
 makespantimes = []
+
 #classes
 class Soil:
     def __init__(self, node1, node2, defsoil, defchance):
@@ -181,8 +184,6 @@ def jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ): #a=j, b=i
 
 #initialization
 print("START INISIALISASI PARAMETER MASALAH")
-# J = int(input("Jumlah job: "))
-# I = int(input("Jumlah mesin: "))
 J = 7
 I = 7
 startTime = Time.time()
@@ -199,21 +200,15 @@ for a in range(1,J+1):
         T[a,b] = nodes[(a,b)].duration
         # T[a,b] = int(input((a,b)))
 
-print("Nodes: {}".format(len(nodes)))
+print("Nodes: {}, length: {}".format(nodes, len(nodes)))
 print("job: {}".format(job))
 print("mesin: {}".format(mesin))
+print("duration: ", T)
 print("END INISIALISASI PARAMETER MASALAH")
 print(" ")
 
 #INISIALISASI PARAMETER ALGORITMA
 print("START INISIALISASI PARAMETER ALGORITMA")
-
-
-# N = int(input("Jumlah water drop: "))
-# itermax = int(input("Jumlah iterasi: "))
-# rhon = float(input("Parameter update local: "))
-# rhoiwd = float(input("Parameter update global: "))
-
 
 
 print("initsoil = {}".format(initsoil))
@@ -225,22 +220,16 @@ print(" ")
 #ALGO BUAT BSA
 print("START ALGORITMA PENYUSUN LIST NODE AWAL")
 
-BSA = list(zip(job, mesin))
+# BSA = list(zip(job, mesin))
 #nodes
 
-print ("Node yang mungkin dilalui: {}".format(BSA))
+# print ("Node yang mungkin dilalui: {}".format(BSA))
 print("END ALGORITMA PENYUSUN LIST NODE AWAL")
 print(" ")
 
 #ALGO SET SOIL X,Y = INITSOIL DAN SOIL2 LAINNYA
 print("START ALGORITMA SET SOIL(X,Y) = INITSOIL DAN SOIL-SOIL LAINNYA")
 
-for a in range(len(BSA)-1):
-    for b in range(a+1,len(BSA)):
-        x= BSA[a]
-        y= BSA[b]
-        allsoil.append((x,y))
-        allsoil.append((y,x))
 
 for key, value in nodes.items():
     for key2, value2 in nodes.items():
@@ -249,39 +238,18 @@ for key, value in nodes.items():
         if (key2,key) in soils:
             del soils[(key2,key)]
 
+
+print("soils: {}".format(soils))
 print("soils length: {}".format(len(soils)))
-# print("allsoil: {}").format(allsoil)
-allsoilLength = len(allsoil)
 
-
-
-# def nol(x):
-#     return 0
-# def ribu(x):
-#     return 10000
-
-soil= list(map(lambda x:10000, allsoil))
-fsoil= list(map(lambda x:10000, allsoil))
-gsoil= list(map(lambda x:10000, allsoil))
-pxy= list(map(lambda x:0, allsoil))
-
-# soil= [10000] * allsoilLength
-# fsoil= [10000] * allsoilLength
-# gsoil= [10000] * allsoilLength
-# pxy= [0] * allsoilLength
-
-# print("soil map: {}").format(soil)
-# print("fsoil map: {}").format(fsoil)
-# print("gsoil map: {}").format(gsoil)
-# print("pxy map: {}").format(pxy)
 
 print("END ALGORITMA SET SOIL(X,Y) = INITSOIL")
 print(" ")
-
+#
 print("START ALGORITMA SET ST, FT, d, e, SGM, FGM, SGJ, FGJ")
 
-for q in range(0, len(BSA)): #buat ngeset ST sama FT= 0
-    helper = BSA[q]
+for helper, _ in nodes.items(): #buat ngeset ST sama FT= 0
+
     STA[helper]= 0
     FTA[helper]= 0
 # print("STA,FTA: ",STA,FTA)
@@ -304,36 +272,29 @@ for q in range(1,J+1): #buat ngeset OJ=0
 # print("OJA: ",OJA)
 # print("eA,SGJA,FGJA,PGJA: ",eA,SGJA,FGJA,PGJA)
 print("END ALGORITMA SET ST, FT, d, e, SGM, FGM, SGJ, FGJ")
-
+#
 #ALGORITMA BESAR
 print("START ALGORITMA UMUM")
 
-for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
+# for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
+iterasi = 0
 
+while (MSTB > lower_bound and iterasi < itermax): #Mulai loop buat sekian iterasi
+    iterasi += 1
     MSIB= 999999
     IB= [ ]
     SIB= 0
 
     for n in range(1, N+1): #Mulai loop buat sekian n
 
-        BS= list(BSA) #unfinished city
         MS= 0 #makespan of current waterdrop
-        VC= [ ] #visited city
-        CVC= 0 #visited counter
-        CBS= len(BS) #unfinished counter
         Vn= initvel #waterdrop speed
         Sn= 0 #waterdrop soil
         j= random.randint(1, J)
         i= random.randint(1, I)
         x= (j,i) #first node
 
-        VC.append((j,i))
-        BS.remove((j,i))
-        CVC= len(VC)
-        CBS= len(BS)
-
         current_node = x
-        # print("first node = ", current_node)
         unfinished_cities = dict(nodes)
         finished_cities = {}
         finished_cities_list = []
@@ -344,7 +305,6 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
         count_unfinished = len(unfinished_cities)
         count_finished = len(finished_cities)
 
-        # print("first node: ",x)
         #START ALGORITMA IWD
         iwdStart = Time.time()
         while len(unfinished_cities)>0: #Mulai loop buat ngisi VC
@@ -378,37 +338,6 @@ for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
                 if address not in soils:
                     address = (city,current_node)
                 soils[address].pxy = ((100000*soils[address].fsoil) / (100000*sigmaf))
-                # print("{} chance = {}/{} = {} == {}".format(address,soils[address].fsoil,sigmaf,soils[address].pxy,soils[address].fsoil/sigmaf))
-                # totalpxy+=soils[address].pxy
-            # print(20*"=")
-            # print("totalchance",totalpxy)
-            # print(20*"=")
-            # # for city in BS:
-            # for y in BS:
-            #     if soil[allsoil.index((x,y))] < minsoil:
-            #         minsoil= soil[allsoil.index((x,y))]
-
-
-
-            #offsetting all soils with the minsoil, if minsoil if negative.
-            # for y in BS:
-            #     straightIndex = allsoil.index((x,y))
-            #     revIndex = allsoil.index((y,x))
-            #     if minsoil>= 0:
-            #         gsoil[straightIndex] = soil[straightIndex]
-            #         gsoil[revIndex] = gsoil[straightIndex]
-            #     else:
-            #         gsoil[straightIndex] = soil[straightIndex] - minsoil
-            #         gsoil[revIndex] = gsoil[straightIndex]
-            #     fsoil[straightIndex] = 1/ (epsilon + gsoil[straightIndex])
-            #     fsoil[revIndex] =  fsoil[straightIndex]
-            #     sigmaf += fsoil[straightIndex]
-            # for y in BS:
-            #     straightIndex = allsoil.index((x,y))
-            #     revIndex = allsoil.index((y,x))
-            #     pxy[straightIndex]= (fsoil[straightIndex]/ sigmaf)
-            #     pxy[revIndex]= pxy[straightIndex]
-
             u= random.uniform(0,1)
             p = 0
             q= 0
