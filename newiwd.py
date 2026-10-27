@@ -1,6 +1,7 @@
 #mdules
 import random
 import time as Time
+import bisect
 
 #globals
 J = 0
@@ -18,57 +19,38 @@ lower_bound = 1011
 #10-10
 # sampleT = {(7, 3): 88, (6, 9): 1, (1, 3): 86, (4, 8): 161, (2, 8): 55, (9, 8): 4, (6, 2): 2, (1, 6): 21, (7, 10): 1, (3, 7): 2, (2, 5): 1, (8, 5): 1, (5, 8): 1, (10, 8): 308, (6, 7): 1, (5, 5): 667, (10, 7): 6, (3, 10): 1, (6, 10): 75, (8, 10): 230, (3, 5): 2, (1, 1): 185, (4, 10): 676, (3, 2): 3, (2, 6): 2, (8, 2): 12, (4, 5): 1, (9, 3): 1, (1, 4): 6, (3, 9): 5, (2, 3): 3, (1, 9): 13, (8, 7): 419, (4, 2): 3, (9, 6): 183, (6, 5): 4, (5, 3): 1, (10, 5): 1, (6, 8): 1, (3, 1): 20, (9, 9): 147, (1, 7): 234, (7, 8): 195, (2, 4): 55, (8, 4): 1, (5, 9): 52, (4, 7): 1, (9, 1): 5, (6, 6): 41, (5, 6): 92, (10, 6): 1, (7, 7): 2, (2, 1): 282, (8, 9): 91, (9, 4): 1, (5, 1): 6, (10, 3): 185, (7, 2): 596, (1, 2): 2, (3, 8): 6, (7, 5): 1, (4, 9): 3, (3, 3): 13, (2, 9): 586, (8, 1): 3, (4, 4): 9, (6, 3): 573, (1, 5): 320, (3, 6): 458, (2, 2): 1, (1, 10): 1, (8, 6): 101, (4, 1): 1, (10, 9): 1, (9, 7): 332, (6, 4): 19, (5, 4): 178, (10, 4): 240, (7, 1): 14, (2, 10): 13, (9, 10): 1, (10, 1): 201, (7, 9): 101, (2, 7): 2, (8, 3): 5, (5, 10): 1, (4, 6): 100, (10, 10): 1, (9, 2): 324, (3, 4): 490, (6, 1): 283, (5, 7): 1, (7, 4): 1, (1, 8): 132, (8, 8): 137, (4, 3): 45, (9, 5): 2, (5, 2): 1, (7, 6): 1, (10, 2): 56}
 
-av, bv, cv = 1, 0.01, 1 #algo params for velocity
-aso, bso, cso = 1, 0.01, 1 #algo params for soil
-initsoil = 10000 #soil initial
-initvel = 200 #velocity initial
-epsilon = 0.0001 #epsilon
+#algo params
+initsoil = 1000.0      #soil initial (= soil upper bound; low soil = attractive edge)
+soilratio = 50.0       #soil upper bound / soil lower bound (MMAS-style bounds)
+epsilon = 0.0001       #epsilon
+alpha = 1.0            #exponent on 1/soil in the selection weight
+beta = 2.0             #exponent on the heuristic HUD in the selection weight
+rhon = 0.1             #local updater: a drop that crosses an edge deposits a little soil there (diversifies the next drops of the same iteration)
+rhoiwd = 0.2           #global updater: evaporation rate + erosion rate on the iteration-best and total-best paths
+tbweight = 0.5         #share of the global erosion that goes to the total-best path (rest goes to the iteration-best)
+stagmax = 8            #iterations without total-best improvement before the soil is reset
+LS_BUDGET = 2          #local-search decodes per iteration, as a multiple of N (0 disables local search)
+MIRROR = 0             #also try the time-reversed schedule when canonicalising (2 extra decodes per use)
+TB_SHARE = 0.25        #share of the local-search budget spent on intensifying the total-best
+sideways = 0.3         #probability of accepting an equal-makespan move in local search
+HEUR = 'lpt'           #heuristic HUD: 'lpt' (static, op length) or 'ltrp' (dynamic, remaining job+machine work)
 
 N = 100 #waterdropMax
 itermax = 500 #iterationMax
-rhon = 0.3 #localUpdater
-rhoiwd = 0.3 #globalUpdater
 
 nodes = {}
-
-allsoil= [ ]
-soil= [ ]
-fsoil= [ ]
-gsoil= [ ]
-pxy= [ ]
-
-STA= { } #start time
-FTA= { } #finish time
-SGMA= { } #start gap machine
-FGMA= { } #finish gap machine
-PGMA= { } #panjang gap machine
-SGJA= { } #start gap job
-FGJA= { } #finish gap job
-PGJA= { } #panjang gap job
-dA= [ ]
-eA= [ ]
-OMA= [ ]
-OJA= [ ]
-
-MSTB= 999999
-minsoil = 999999
-TB= [ ]
-
 soils = {}
 
-dicetime = []
+MSTB= 999999
+TB= [ ]
+STT= { }
+FTT= { }
+
 iwdtimes = []
 makespantimes = []
+lstimes = []
 
 #classes
-class Soil:
-    def __init__(self, node1, node2, defsoil, defchance):
-        self.soil = defsoil
-        self.fsoil = defsoil
-        self.gsoil = defsoil
-        self.pxy = defchance
-        self.nodes = [node1, node2]
-
 class Node:
     def __init__(self, job, machine, duration):
         self.job = job
@@ -76,111 +58,149 @@ class Node:
         self.duration = duration
         self.value = (job, machine)
 
-class Waterdrop:
-    def __init__(self):
-        self.velocity = initvel
-
 #funcs
-def updategapj(j,i,w, ST, SGJ, FT, FGJ, PGJ, e):
-    if ST[j,i]== SGJ[j,w]:
-        if FT[j,i]== FGJ[j,w]:
-            for w in range(w,e[j]):
-                SGJ[j,w]= SGJ[j,w+1]
-                FGJ[j,w]= FGJ[j,w+1]
-                PGJ[j,w]= PGJ[j,w+1]
-            del SGJ[j,e[j]]
-            del FGJ[j,e[j]]
-            del PGJ[j,e[j]]
-            e[j]= e[j]- 1
-        else:
-            SGJ[j,w]= FT[j,i]
-            PGJ[j,w]= FGJ[j,w]- SGJ[j,w]
-    else:
-        if FT[j,i]== FGJ[j,w]:
-            FGJ[j,w]= ST[j,i]
-            PGJ[j,w]= FGJ[j,w]- SGJ[j,w]
-        else:
-            e[j]= e[j]+ 1
-            SGJ[j,e[j]]= SGJ[j,e[j]-1]
-            FGJ[j,e[j]]= FGJ[j,e[j]-1]
-            PGJ[j,e[j]]= PGJ[j,e[j]-1]
-            if e[j]-w >=2:
-                for r in range(e[j],w+2):
-                    SGJ[j,r+1]= SGJ[j,r]
-                    FGJ[j,r+1]= FGJ[j,r]
-                    PGJ[j,r+1]= PGJ[j,r]
-            SGJ[j,w+1]= FT[j,i]
-            FGJ[j,w+1]= FGJ[j,w]
-            PGJ[j,w+1]= FGJ[j,w+1]- SGJ[j,w+1]
-            FGJ[j,w]= ST[j,i]
-            PGJ[j,w]= FGJ[j,w]- SGJ[j,w]
+def decode(seq):
+    """Earliest-gap insertion decoder (active schedule). Returns (makespan, ST, FT).
+    Each op is put in the earliest interval that is free on both its job and its machine."""
+    jb = {}
+    mb = {}
+    ST = {}
+    FT = {}
+    for (j, i) in seq:
+        p = T[j, i]
+        a = jb.setdefault(j, [])
+        b = mb.setdefault(i, [])
+        t = 0
+        ia = 0
+        ib = 0
+        while True:
+            if ia < len(a) and (ib >= len(b) or a[ia][0] <= b[ib][0]):
+                s, f = a[ia]
+                ia += 1
+            elif ib < len(b):
+                s, f = b[ib]
+                ib += 1
+            else:
+                break
+            if s - t >= p:
+                break
+            if f > t:
+                t = f
+        ST[j, i] = t
+        FT[j, i] = t + p
+        bisect.insort(a, (t, t + p))
+        bisect.insort(b, (t, t + p))
+    return max(FT.values()), ST, FT
 
-def updategapi(j,i,u,ST,SGM,FT,FGM,d,PGM):
-    if ST[j,i]== SGM[i,u]:
-        if FT[j,i]== FGM[i,u]:
-            for u in range(u,d[i]):
-                SGM[i,u]= SGM[i,u+1]
-                FGM[i,u]= FGM[i,u+1]
-                PGM[i,u]= PGM[i,u+1]
-            del SGM[i,d[i]]
-            del FGM[i,d[i]]
-            del PGM[i,d[i]]
-            d[i]= d[i]- 1
-        else:
-            SGM[i,u]= FT[j,i]
-            PGM[i,u]= FGM[i,u]- SGM[i,u]
-    else:
-        if FT[j,i]== FGM[i,u]:
-            FGM[i,u]= ST[j,i]
-            PGM[i,u]= FGM[i,u]- SGM[i,u]
-        else:
-            d[i]= d[i]+ 1
-            SGM[i,d[i]]= SGM[i,d[i]-1]
-            FGM[i,d[i]]= FGM[i,d[i]-1]
-            PGM[i,d[i]]= PGM[i,d[i]-1]
-            if d[i]-u >= 2:
-                for r in range(d[i],u+2):
-                    SGM[i,r+1]= SGM[i,r]
-                    FGM[i,r+1]= FGM[i,r]
-                    PGM[i,r+1]= PGM[i,r]
-            SGM[i,u+1]= FT[j,i]
-            FGM[i,u+1]= FGM[i,u]
-            PGM[i,u+1]= FGM[i,u+1]- SGM[i,u+1]
-            FGM[i,u]= ST[j,i]
-            PGM[i,u]= FGM[i,u]- SGM[i,u]
+def canonical(seq, MS, ST, FT):
+    """Re-order the sequence by start time and re-decode; keep it if not worse.
+    Gives the soil a consistent ordering to learn from."""
+    seq2 = sorted(seq, key=lambda op: (ST[op], op))
+    MS2, ST2, FT2 = decode(seq2)
+    if MS2 <= MS:
+        seq, MS, ST, FT = seq2, MS2, ST2, FT2
+    if MIRROR:
+        # open shop is reversible: decode the reversed sequence, mirror the times, re-decode forward
+        MSr, STr, FTr = decode(seq[::-1])
+        seq3 = sorted(seq, key=lambda op: (MSr - FTr[op], op))
+        MS3, ST3, FT3 = decode(seq3)
+        if MS3 < MS:
+            seq, MS, ST, FT = seq3, MS3, ST3, FT3
+    return seq, MS, ST, FT
 
-def updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ):
-    if ST[j,i]== SGM[i,d[i]]:
-        pass
-    else:
-        FGM[i,d[i]]= ST[j,i]
-        PGM[i,d[i]]= FGM[i,d[i]]- SGM[i,d[i]]
-        d[i]= d[i]+ 1
-    SGM[i,d[i]]= FT[j,i]
-    FGM[i,d[i]]= 999999
-    PGM[i,d[i]]= 999999
-    if ST[j,i]== SGJ[j,e[j]]:
-        pass
-    else:
-        FGJ[j,e[j]]= ST[j,i]
-        PGJ[j,e[j]]= FGJ[j,e[j]]- SGJ[j,e[j]]
-        e[j]= e[j]+ 1
-    SGJ[j,e[j]]= FT[j,i]
-    FGJ[j,e[j]]= 999999
-    PGJ[j,e[j]]= 999999
+def critical_ops(MS, ST, FT):
+    """One critical chain: start at an op finishing at the makespan, walk back through the
+    job/machine predecessor whose finish equals the current start."""
+    byfinish = {}
+    for op, f in FT.items():
+        byfinish.setdefault(f, []).append(op)
+    chain = []
+    cur = random.choice(byfinish[MS])
+    seen = set()
+    while cur is not None and cur not in seen:
+        seen.add(cur)
+        chain.append(cur)
+        preds = [op for op in byfinish.get(ST[cur], []) if op[0] == cur[0] or op[1] == cur[1]]
+        cur = random.choice(preds) if preds else None
+    return chain
 
-def jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ): #a=j, b=i
-    if SGJ[j,e[j]]<= SGM[i,d[i]]: #buat penjadwalan di ujung, cek mau dijadwalin di ujung gap job atau gap mesin
-        ST[j,i]= SGM[i,d[i]]
-        FT[j,i]= ST[j,i]+ T[j,i]
-        OM[i]= OM[i]+ 1
-        OJ[j]= OJ[j]+ 1
-    else:
-        ST[j,i]= SGJ[j,e[j]]
-        FT[j,i]= ST[j,i]+ T[j,i]
-        OM[i]= OM[i]+ 1
-        OJ[j]= OJ[j]+ 1
+def neighbours(seq, MS, ST, FT):
+    """Candidate moves from one critical chain, as (kind, op, target) tuples:
+    'before': move op just before its critical predecessor in the sequence (swap their precedence);
+    'after' : move op just after its critical successor;
+    'rand'  : move op to a random earlier position."""
+    chain = critical_ops(MS, ST, FT)
+    cand = []
+    for k, op in enumerate(chain):
+        if k + 1 < len(chain):
+            cand.append(('before', op, chain[k + 1]))
+        if k > 0:
+            cand.append(('after', op, chain[k - 1]))
+        cand.append(('rand', op, None))
+    random.shuffle(cand)
+    return cand
 
+def apply_move(seq, move):
+    kind, op, other = move
+    pos = {o: k for k, o in enumerate(seq)}
+    k = pos[op]
+    seq2 = list(seq)
+    del seq2[k]
+    if kind == 'before':
+        newk = pos[other] if pos[other] < k else pos[other] - 1
+    elif kind == 'after':
+        newk = pos[other] + 1 if pos[other] < k else pos[other]
+    else:
+        if k == 0:
+            return None
+        newk = random.randrange(0, k)
+    if newk == k:
+        return None
+    seq2.insert(newk, op)
+    return seq2
+
+def local_search(seq, MS, ST, FT, budget):
+    """Critical-path guided local search on the sequence, first improvement, sideways moves
+    allowed, at most `budget` decodes. Returns the best (seq, MS, ST, FT) found."""
+    used = 0
+    bestseq, bestMS, bestST, bestFT = seq, MS, ST, FT
+    while used < budget:
+        improved = False
+        for move in neighbours(seq, MS, ST, FT):
+            if used >= budget:
+                break
+            seq2 = apply_move(seq, move)
+            if seq2 is None:
+                continue
+            MS2, ST2, FT2 = decode(seq2)
+            used += 1
+            if MS2 < MS:
+                seq, MS, ST, FT = seq2, MS2, ST2, FT2
+                improved = True
+                if MS < bestMS:
+                    bestseq, bestMS, bestST, bestFT = seq, MS, ST, FT
+                break
+            if MS2 == MS and random.random() < sideways:
+                seq, MS, ST, FT = seq2, MS2, ST2, FT2
+                break
+        if not improved and used < budget:
+            # random perturbation to leave a plateau
+            a, b = random.sample(range(len(seq)), 2)
+            seq2 = list(seq)
+            seq2[a], seq2[b] = seq2[b], seq2[a]
+            MS2, ST2, FT2 = decode(seq2)
+            used += 1
+            if MS2 <= MS:
+                seq, MS, ST, FT = seq2, MS2, ST2, FT2
+    return bestseq, bestMS, bestST, bestFT
+
+def erode(path, amount):
+    """Global update: remove `amount` of the soil range along a directed path (incl. start edge)."""
+    prev = 0
+    for op in path:
+        s = soils[prev, op]
+        soils[prev, op] = max(soil_lo, s - amount * (s - soil_lo))
+        prev = op
 
 #initialization
 print("START INISIALISASI PARAMETER MASALAH")
@@ -196,391 +216,135 @@ for a in range(1,J+1):
             node.duration = sampleT[(a,b)]
         print("node ({},{}) duration: {}".format(node.job, node.machine, node.duration))
         nodes[(a,b)] = node
-
         T[a,b] = nodes[(a,b)].duration
-        # T[a,b] = int(input((a,b)))
 
 print("Nodes: {}, length: {}".format(nodes, len(nodes)))
-print("job: {}".format(job))
-print("mesin: {}".format(mesin))
 print("duration: ", T)
 print("END INISIALISASI PARAMETER MASALAH")
 print(" ")
 
-#INISIALISASI PARAMETER ALGORITMA
 print("START INISIALISASI PARAMETER ALGORITMA")
-
-
+soil_hi = initsoil
+soil_lo = initsoil / soilratio
+Tmax = max(T.values())
+# HUD: heuristic desirability of visiting an op next = longest-processing-time-first
+HUD = {op: (T[op] / Tmax) ** beta for op in nodes}
+loadj = {j: sum(T[j, i] for i in range(1, I + 1)) for j in range(1, J + 1)}
+loadm = {i: sum(T[j, i] for j in range(1, J + 1)) for i in range(1, I + 1)}
+Tsum = float(sum(T.values()))
 print("initsoil = {}".format(initsoil))
-print("initvel = {}".format(initvel))
 print("END INISIALISASI PARAMETER ALGORITMA")
 print(" ")
 
-
-#ALGO BUAT BSA
-print("START ALGORITMA PENYUSUN LIST NODE AWAL")
-
-# BSA = list(zip(job, mesin))
-#nodes
-
-# print ("Node yang mungkin dilalui: {}".format(BSA))
-print("END ALGORITMA PENYUSUN LIST NODE AWAL")
-print(" ")
-
-#ALGO SET SOIL X,Y = INITSOIL DAN SOIL2 LAINNYA
+#ALGO SET SOIL X,Y = INITSOIL (directed, with a virtual start node 0)
 print("START ALGORITMA SET SOIL(X,Y) = INITSOIL DAN SOIL-SOIL LAINNYA")
-
-
-for key, value in nodes.items():
-    for key2, value2 in nodes.items():
-        if not key==key2:
-            soils[(key,key2)] = Soil(value, value2, 10000, 0)
-        if (key2,key) in soils:
-            del soils[(key2,key)]
-
-
-print("soils: {}".format(soils))
+def reset_soil():
+    for key in nodes:
+        soils[(0, key)] = soil_hi
+        for key2 in nodes:
+            if key != key2:
+                soils[(key, key2)] = soil_hi
+reset_soil()
 print("soils length: {}".format(len(soils)))
-
-
 print("END ALGORITMA SET SOIL(X,Y) = INITSOIL")
 print(" ")
-#
-print("START ALGORITMA SET ST, FT, d, e, SGM, FGM, SGJ, FGJ")
 
-for helper, _ in nodes.items(): #buat ngeset ST sama FT= 0
-
-    STA[helper]= 0
-    FTA[helper]= 0
-# print("STA,FTA: ",STA,FTA)
-for q in range(0, I+1): #buat ngeset OM=0
-    OMA.append(0)
-    dA.append(1)
-for q in range(1,I+1): #buat ngeset OM=0
-    SGMA[q,1]= 0
-    FGMA[q,1]= 999999
-    PGMA[q,1]= 999999
-# print("OMA: ",OMA)
-# print("dA,SGMA,FGMA,PGMA: ",dA,SGMA,FGMA,PGMA)
-for q in range(0,J+1): #buat ngeset OM=0
-    OJA.append(0)
-    eA.append(1)
-for q in range(1,J+1): #buat ngeset OJ=0
-    SGJA[q,1]= 0
-    FGJA[q,1]= 999999
-    PGJA[q,1]= 999999
-# print("OJA: ",OJA)
-# print("eA,SGJA,FGJA,PGJA: ",eA,SGJA,FGJA,PGJA)
-print("END ALGORITMA SET ST, FT, d, e, SGM, FGM, SGJ, FGJ")
-#
 #ALGORITMA BESAR
 print("START ALGORITMA UMUM")
-
-# for iterasi in range(1, itermax + 1): #Mulai loop buat sekian iterasi
 iterasi = 0
+best = 0
+stag = 0
+ops_all = list(nodes)
+n_ops = len(ops_all)
 
 while (MSTB > lower_bound and iterasi < itermax): #Mulai loop buat sekian iterasi
     iterasi += 1
     MSIB= 999999
     IB= [ ]
-    SIB= 0
+    STB= { }
+    FTB= { }
 
     for n in range(1, N+1): #Mulai loop buat sekian n
-
-        MS= 0 #makespan of current waterdrop
-        Vn= initvel #waterdrop speed
-        Sn= 0 #waterdrop soil
-        j= random.randint(1, J)
-        i= random.randint(1, I)
-        x= (j,i) #first node
-
-        current_node = x
-        unfinished_cities = dict(nodes)
-        finished_cities = {}
-        finished_cities_list = []
-        finished_cities_list.append(x)
-        finished_cities[x] = unfinished_cities[x]
-        del unfinished_cities[x]
-
-        count_unfinished = len(unfinished_cities)
-        count_finished = len(finished_cities)
-
-        #START ALGORITMA IWD
         iwdStart = Time.time()
-        while len(unfinished_cities)>0: #Mulai loop buat ngisi VC
-            sigmaf = 0
-            minsoil = 9999999
-            for city in unfinished_cities:
-                address = (current_node,city)
-                if address not in soils:
-                    address = (city,current_node)
-
-                if soils[address].soil < minsoil:
-                    minsoil = soils[address].soil
-
-            for city in unfinished_cities:
-                address = (current_node,city)
-                if address not in soils:
-                    address = (city,current_node)
-                path = soils[address]
-
-                if minsoil >= 0:
-                    path.gsoil = path.soil
-                else:
-                    path.gsoil = path.soil - minsoil
-                path.fsoil = 1 / (epsilon + path.gsoil)
-                sigmaf += path.fsoil
-                soils[address] = path
-
-            # totalpxy=0
-            for city in unfinished_cities:
-                address = (current_node,city)
-                if address not in soils:
-                    address = (city,current_node)
-                soils[address].pxy = ((100000*soils[address].fsoil) / (100000*sigmaf))
-            u= random.uniform(0,1)
-            p = 0
-            q= 0
-            chancetime = Time.time()
-            the_city = current_node
-            the_address = ()
-
-            # totalchance = 0
-            # for road in soils:
-            #     totalchance += soils[road].pxy
-            #     print("soil: {} - {} === {}".format(road,soils[road].fsoil/sigmaf,totalchance))
-            # print("!!!!!!!!!!!!!!!!!!!!!!!!!")
-            # print("total chance is ",totalchance)
-            unfinished_cities_list = list(unfinished_cities.items())
-
-            while u > p:
-                city = unfinished_cities_list[q]
-                address = (current_node,city[0])
-                if address not in soils:
-                    address = (city[0],current_node)
-                the_address=address
-                the_city=city[0]
-                # print("u:{}, p:{}, not met. appending p with {}, q = {}".format(u,p,soils[the_address].pxy,q))
-                p += soils[the_address].pxy
-                q += 1
-            # print("found on p = {}, q = {}".format(p,q))
-            dicetime.append(Time.time()-chancetime)
-            finished_cities_list.append(city[0])
-            finished_cities[city[0]] = unfinished_cities[city[0]]
-            del unfinished_cities[city[0]]
-            count_finished += 1
-            count_unfinished -= 1
-
-            Vn += av/ (bv+ cv* soils[the_address].soil**2)
-            HUD= 1/ (epsilon+ T[the_city])
-            time= HUD/ Vn
-            dsoil= aso/ (bso+ cso* time**2)
-            soils[the_address].soil *= (1- rhon)
-            soils[the_address].soil -= rhon* dsoil
-            Sn = Sn+ dsoil
+        current_node = 0
+        unfinished = list(ops_all)
+        path = []
+        if HEUR == 'ltrp':
+            remj = dict(loadj)
+            remm = dict(loadm)
+        while unfinished: #Mulai loop buat ngisi VC
+            weights = []
+            if HEUR == 'ltrp':
+                for city in unfinished:
+                    s = soils[current_node, city]
+                    weights.append(((T[city] + remj[city[0]] + remm[city[1]]) / Tsum) ** beta / (epsilon + s) ** alpha)
+            else:
+                for city in unfinished:
+                    s = soils[current_node, city]
+                    weights.append(HUD[city] / (epsilon + s) ** alpha)
+            the_city = random.choices(unfinished, weights=weights)[0]
+            unfinished.remove(the_city)
+            path.append(the_city)
+            if HEUR == 'ltrp':
+                remj[the_city[0]] -= T[the_city]
+                remm[the_city[1]] -= T[the_city]
+            # local update: the drop deposits a bit of soil, so the next drops of this
+            # iteration are nudged to other edges (diversification inside an iteration)
+            s = soils[current_node, the_city]
+            soils[current_node, the_city] = (1 - rhon) * s + rhon * soil_hi
             current_node = the_city
-            # print("current_node: ", current_node)
-            # while u > p: #loop buat milih y
-            #     y= BS[q]
-            #
-            #     straightIndex = allsoil.index((x,y))
-            #     p= p + pxy[straightIndex]
-            #     q= q + 1
-            # dicetime.append(Time.time()-chancetime)
-            # VC.append(y)
-            # BS.remove(y)
-            # CVC += 1
-            # CBS -= 1
-
-            #Rumus-rumus buat update
-
-            # straightIndex = allsoil.index((x,y))
-            # revIndex = allsoil.index((y,x))
-            # Vn= Vn + av/ (bv+ cv* soil[straightIndex]**2)
-            # HUD= 1/ (epsilon+ T[y])
-            # time= HUD/ Vn
-            # dsoil= aso/ (bso+ cso* time* time)
-            # soil[straightIndex]= (1- rhon)*soil[straightIndex]- rhon* dsoil
-            # soil[revIndex]= soil[straightIndex]
-            # Sn = Sn+ dsoil
-            # x=y
-        # print(finished_cities_list)
-        #END OF IWD
-
-        # print("minsoil = {}".format(minsoil))
         iwdEnd = Time.time()
 
-        #START ALGORITMA PENJADWALAN DAN MAKESPAN
-        ST= dict(STA)
-        FT= dict(FTA)
-        SGM= dict(SGMA)
-        FGM= dict(FGMA)
-        PGM= dict(PGMA)
-        SGJ= dict(SGJA)
-        FGJ= dict(FGJA)
-        PGJ= dict(PGJA)
-        d= list(dA)
-        e= list(eA)
-        OM= list(OMA)
-        OJ= list(OJA)
-
-        # print("finished_cities_list:", finished_cities_list)
-        for q in range(count_finished): #mulai pengisian gantt chart
-            (j,i) = finished_cities_list[q]
-            # print("j,i: ",j,i)
-            if OM[i]== 0: #cek OMi = 0
-                if OJ[j]==0: #cek OJj=0
-                    jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ)
-                    updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ)
-                else:
-                    if e[j]== 1: #buat yang OJj ga 0 dan gap job 1
-                        jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ)
-                        updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ)
-                    else: #buat yang OMi 0, OJj ga 0 dan gap job ga 1
-                        for w in range(1,e[j]):
-                            if T[j,i]<= PGJ[j,w]:
-                                ST[j,i]= SGJ[j,w]
-                                FT[j,i]= ST[j,i]+ T[j,i]
-                                OM[i]= OM[i]+ 1
-                                OJ[j]= OJ[j]+ 1
-                                updategapi(j,i,1,ST,SGM,FT,FGM,d,PGM)
-                                updategapj(j,i,w, ST, SGJ, FT, FGJ, PGJ, e)
-                                break
-                        else: #buat yang OMi 0, OJj ga 0, gap job ga 1, tapi gap job ga ada yang muat
-                            jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ)
-                            updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ)
-            else: #buat yang OMi ga 0
-                if d[i]== 1: #cek gap mesin
-                    if e[j]== 1: #cek gap job
-                        jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ)
-                        updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ)
-                    else: #buat OMi ga 0, gap mesin 1, dan gap job ga 1
-                        u= 1
-                        w= 1
-                        PGI= 0
-                        SGI= 0
-                        FGI= 0
-                        for w in range(1,e[j]):
-                            if SGM[i,u]>= SGJ[j,w]:
-                                if FGM[i,u] >= FGJ[j,w]:
-                                    if FGJ[j,w] >= SGM[i,u]:
-                                        SGI= SGM[i,u]
-                                        FGI= FGJ[j,w]
-                                        PGI= FGI- SGI
-                                    else:
-                                        PGI= 0
-                                else:
-                                    SGI= SGM[i,u]
-                                    FGI= FGM[i,u]
-                                    PGI= FGI- SGI
-                            else:
-                                if FGM[i,u]< FGJ[j,w]:
-                                    if FGM[i,u] > SGJ[j,w]:
-                                        SGI= SGJ[j,w]
-                                        FGI= FGM[i,u]
-                                        PGI= FGI- SGI
-                                    else:
-                                        PGI= 0
-                                else:
-                                    SGI= SGJ[j,w]
-                                    FGI= FGJ[j,w]
-                                    PGI= FGI- SGI
-                            if T[j,i] <= PGI:
-                                ST[j,i]= SGI
-                                FT[j,i]= ST[j,i] + T[j,i]
-                                OM[i]= OM[i]+ 1
-                                OJ[j]= OJ[j]+ 1
-                                updategapi(j,i,u,ST,SGM,FT,FGM,d,PGM)
-                                updategapj(j,i,w, ST, SGJ, FT, FGJ, PGJ, e)
-                                break
-                        else:
-                            jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ)
-                            updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ)
-                else: #buat OMi ga 0 dan gap mesin ga 1
-                    for u in range(1,d[i]):
-                        PGI= 0
-                        SGI= 0
-                        FGI= 0
-                        if T[j,i] <= PGM[i,u]:
-                            for w in range(1,e[j]+1):
-                                if SGM[i,u]>= SGJ[j,w]:
-                                    if FGM[i,u] >= FGJ[j,w]:
-                                        if FGJ[j,w] >= SGM[i,u]:
-                                            SGI= SGM[i,u]
-                                            FGI= FGJ[j,w]
-                                            PGI= FGI- SGI
-                                        else:
-                                            PGI= 0
-                                    else:
-                                        SGI= SGM[i,u]
-                                        FGI= FGM[i,u]
-                                        PGI= FGI- SGI
-                                else:
-                                    if FGM[i,u]< FGJ[j,w]:
-                                        if FGM[i,u] > SGJ[j,w]:
-                                            SGI= SGJ[j,w]
-                                            FGI= FGM[i,u]
-                                            PGI= FGI- SGI
-                                        else:
-                                            PGI= 0
-                                    else:
-                                        SGI= SGJ[j,w]
-                                        FGI= FGJ[j,w]
-                                        PGI= FGI- SGI
-                                if T[j,i] <= PGI:
-                                    ST[j,i]= SGI
-                                    FT[j,i]= ST[j,i] + T[j,i]
-                                    OM[i]= OM[i]+ 1
-                                    OJ[j]= OJ[j]+ 1
-                                    updategapi(j,i,u,ST,SGM,FT,FGM,d,PGM)
-                                    updategapj(j,i,w, ST, SGJ, FT, FGJ, PGJ, e)
-                                    break
-                            if T[j,i]<= PGI:
-                                break
-                    else:
-                        jadwalujung(j,i,SGJ,e,SGM,d,ST,FT,T,OM,OJ)
-                        updategapujung(j,i,ST,SGM,d,FGM,PGM,FT,e,SGJ,FGJ,PGJ)
-
-        MS= max(FT.values())
+        MS, ST, FT = decode(path)
+        makespanEnd = Time.time()
+        iwdtimes.append(iwdEnd - iwdStart)
+        makespantimes.append(makespanEnd - iwdEnd)
 
         if MS < MSIB: #update MSIB
             MSIB= MS
-            IB= finished_cities_list
-            SIB= Sn
+            IB= path
             STB= ST
             FTB= FT
 
-        makespanEnd = Time.time()
-        iwdtimes.append(iwdEnd-iwdStart)
-        makespantimes.append(chancetime-iwdStart)
-        # print "IWD took {} seconds and makespan took {} seconds for this waterdrop.".format(iwdEnd-iwdStart, makespanEnd-iwdEnd)
-        # print "waterdrop {} of iteration {} done.".format(n,iterasi)
+    # local search on the iteration best
+    lsStart = Time.time()
+    budget = int(LS_BUDGET * N)
+    if budget > 0:
+        IB, MSIB, STB, FTB = local_search(IB, MSIB, STB, FTB, budget - int(TB_SHARE * budget))
+    IB, MSIB, STB, FTB = canonical(IB, MSIB, STB, FTB)
 
-    for q in range(count_finished-1): #update soil
-        x= IB[q]
-        y= IB[q+1]
-        address = (x,y)
-        # print(address)
-        if address not in soils:
-            address = (y,x)
-        soils[address].soil = (1+ rhoiwd)* soils[address].soil - rhoiwd*(1/(J*I-1))*SIB
-
-        # straightxIndex = allsoil.index((x,y))
-        # revxIndex = allsoil.index((y,x))
-        # soil[straightxIndex]= (1+ rhoiwd)* soil[straightxIndex]-rhoiwd*(1/(J*I-1))*SIB
-        # soil[revxIndex]= soil[straightxIndex]
-
-    # for soil_n in soils:
-        # print("soil for {}: {}, with pxy: {}".format(soil_n,soils[soil_n].soil,soils[soil_n].pxy))
     if MSIB< MSTB: #update MSTB
         MSTB= MSIB
-        TB= IB
+        TB= list(IB)
         STT= STB
         FTT= FTB
         best= iterasi
+        stag = 0
+    else:
+        stag += 1
+    # intensification: keep polishing the total best with the rest of the budget
+    if budget > 0 and int(TB_SHARE * budget) > 0:
+        TB, MS2, ST2, FT2 = local_search(TB, MSTB, STT, FTT, int(TB_SHARE * budget))
+        if MS2 < MSTB:
+            MSTB, STT, FTT = MS2, ST2, FT2
+            best = iterasi
+            stag = 0
+        TB, MSTB, STT, FTT = canonical(TB, MSTB, STT, FTT)
+    lstimes.append(Time.time() - lsStart)
+
+    # global update: evaporation (soil flows back towards initsoil everywhere) ...
+    for key in soils:
+        s = soils[key]
+        soils[key] = s + rhoiwd * (soil_hi - s)
+    # ... then erosion along the iteration-best and the total-best paths
+    erode(IB, rhoiwd * (1 - tbweight))
+    erode(TB, rhoiwd * tbweight)
+
+    if stag >= stagmax:
+        reset_soil()
+        stag = 0
     print("iteration number {} done. MSIB: {}. Best: {}.".format(iterasi, MSIB, MSTB))
-# print("MSTB: {}".format(MSTB))
-# print("TB: {}".format(TB))
+
 print("Start time best: {}".format(STT))
 print("Finish time best: {}".format(FTT))
 print("best iteration: {}".format(best))
@@ -589,7 +353,6 @@ print("MSTB: {}".format(MSTB))
 print("TB: {}".format(TB))
 endTime = Time.time()
 print("time elapsed: {}".format(endTime - startTime))
-print("dice time max: {}".format(max(dicetime)))
 print("iwd time max: {}".format(max(iwdtimes)))
 print("makespan time max: {}".format(max(makespantimes)))
-# print nodes
+print("local search time max: {}".format(max(lstimes)))
